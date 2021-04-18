@@ -28,7 +28,7 @@ namespace FaithlifeReader.Functions
 			log.LogInformation("FeedItems HTTP trigger function processing a request.");
 
 			// get user's credentials from the cookie
-			var (accessToken, accessSecret) = GetCredentials(req);
+			var (accessToken, accessSecret) = GetCredentials(req, log);
 			if (accessToken is null)
 				return new ForbidResult();
 
@@ -154,11 +154,14 @@ namespace FaithlifeReader.Functions
 			}
 		}
 
-		private static (string AccessToken, string AccessSecret) GetCredentials(HttpRequest request)
+		private static (string AccessToken, string AccessSecret) GetCredentials(HttpRequest request, ILogger log)
 		{
 			var encodedCookie = request.Cookies["faithlife-reader-auth"];
 			if (encodedCookie is null)
+			{
+				log.LogInformation("faithlife-reader-auth cookie is missing");
 				return default;
+			}
 
 			byte[] encryptedCookie;
 			try
@@ -167,14 +170,19 @@ namespace FaithlifeReader.Functions
 			}
 			catch (FormatException)
 			{
+				log.LogInformation("Couldn't Base64-decode auth cookie");
 				return default;
 			}
 
 			var decryptedCookie = Encryption.Decrypt(encryptedCookie);
 			if (decryptedCookie is null)
+			{
+				log.LogInformation("Couldn't decrypt & verify auth cookie");
 				return default;
+			}
 
 			var components = decryptedCookie.Split('/');
+			log.LogInformation("Decrypted access-token={0} from auth cookie", components[0]);
 			return (components[0], components[1]);
 		}
 	}
