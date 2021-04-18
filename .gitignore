@@ -1,0 +1,12 @@
+bin/
+obj/
+release/
+.vs/
+Thumbs.db
+*.cache
+*.user
+*.userprefs
+*.ncrunchproject
+*.ncrunchsolution
+nCrunchTemp*
+_ReSharper*
