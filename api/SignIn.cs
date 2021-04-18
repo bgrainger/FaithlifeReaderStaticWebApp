@@ -23,8 +23,8 @@ namespace FaithlifeReader.Functions
 		{
 			log.LogInformation("SignIn HTTP trigger function processing a request.");
 
-			var finalUri = new Uri(new Uri(req.GetEncodedUrl()), "/");
-			var callbackUri = new Uri(new Uri(req.GetEncodedUrl()), $"OAuthSignIn?redirect={Uri.EscapeDataString(finalUri.AbsoluteUri)}");
+			var redirectUri = new Uri(req.Query["redirect"]);
+			var callbackUri = new Uri(redirectUri, $"/api/OAuthSignIn?redirect={Uri.EscapeDataString(redirectUri.AbsoluteUri)}");
 			log.LogDebug("Callback URI is {0}", callbackUri.AbsoluteUri);
 			var temporaryTokenMessage = new HttpRequestMessage(HttpMethod.Post, new Uri(Utility.OAuthBaseUri, "temporarytoken?allowSession=true"));
 			temporaryTokenMessage.Headers.Authorization = AuthenticationHeaderValue.Parse(OAuthUtility.CreateAuthorizationHeaderValue(Utility.ConsumerToken, Utility.ConsumerSecret, callbackUri.AbsoluteUri));
