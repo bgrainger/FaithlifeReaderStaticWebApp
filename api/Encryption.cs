@@ -8,23 +8,24 @@ namespace FaithlifeReader.Functions
 {
 	internal static class Encryption
 	{
+		// Implements AES_CBC_HMAC_SHA2 encryption from Section 5.2.2.1 of https://www.rfc-editor.org/rfc/rfc7518.txt
 		public static byte[] Encrypt(string data)
 		{
+			// split secret into two keys (Step 1)
 			var secretKey = Utility.SecretKey;
 			var encryptionKey = secretKey[..32].ToArray();
 			var macKey = secretKey[^32..].ToArray();
 
-			using var aes = Aes.Create();
-			aes.GenerateIV();
-			aes.Key = encryptionKey;
-			aes.Mode = CipherMode.ECB;
-			aes.Padding = PaddingMode.Zeros;
+			// encrypt the data (Steps 2-3)
+			using var aes = CreateAes(encryptionKey);
 			using var encryptor = aes.CreateEncryptor();
 			var dataBytes = Encoding.UTF8.GetBytes(data);
 			var encryptedData = encryptor.TransformFinalBlock(dataBytes, 0, dataBytes.Length);
 
+			// compute MAC (Steps 4-5)
 			var mac = ComputeMac(macKey, aes.IV, encryptedData);
 
+			// pack outputs into one array
 			var output = new byte[aes.IV.Length + encryptedData.Length + mac.Length];
 			aes.IV.CopyTo(output, 0);
 			encryptedData.AsSpan().CopyTo(output.AsSpan().Slice(aes.IV.Length));
@@ -32,29 +33,29 @@ namespace FaithlifeReader.Functions
 			return output;
 		}
 
+		// Implements AES_CBC_HMAC_SHA2 decryption from Section 5.2.2.2 of https://www.rfc-editor.org/rfc/rfc7518.txt
 		public static string? Decrypt(byte[] input)
 		{
+			// unpack outputs from 'Encrypt'
 			var iv = input[0..16].ToArray();
 			var encryptedData = input[16..^32].ToArray();
 			var mac = input[^32..].ToArray();
 
+			// split secret into two keys (Step 1)
 			var secretKey = Utility.SecretKey;
 			var encryptionKey = secretKey[..32].ToArray();
 			var macKey = secretKey[^32..].ToArray();
 
+			// check MAC authenticity (Step 2)
 			var computedMac = ComputeMac(macKey, iv, encryptedData);
-
 			if (!computedMac.SequenceEqual(mac))
 				return null;
 
-			using var aes = Aes.Create();
-			aes.IV = iv;
-			aes.Key = encryptionKey;
-			aes.Mode = CipherMode.ECB;
-			aes.Padding = PaddingMode.Zeros;
+			// decrypt (Steps 3-4)
+			using var aes = CreateAes(encryptionKey, iv);
 			using var decryptor = aes.CreateDecryptor();
 			var decryptedData = decryptor.TransformFinalBlock(encryptedData, 0, encryptedData.Length);
-			return Encoding.UTF8.GetString(decryptedData).TrimEnd('\0');
+			return Encoding.UTF8.GetString(decryptedData);
 		}
 
 		private static byte[] ComputeMac(byte[] macKey, byte[] iv, byte[] encryptedData)
@@ -63,10 +64,22 @@ namespace FaithlifeReader.Functions
 			var inputData = new List<byte>();
 			inputData.AddRange(iv);
 			inputData.AddRange(encryptedData);
-			inputData.AddRange(BitConverter.GetBytes((long) iv.Length * 8));
 			inputData.AddRange(BitConverter.GetBytes(0L));
 			hmac.TransformFinalBlock(inputData.ToArray(), 0, inputData.Count);
 			return hmac.Hash;
+		}
+
+		private static Aes CreateAes(byte[] key, byte[]? iv = null)
+		{
+			var aes = Aes.Create();
+			aes.Key = key;
+			aes.Mode = CipherMode.CBC;
+			aes.Padding = PaddingMode.PKCS7;
+			if (iv is null)
+				aes.GenerateIV();
+			else
+				aes.IV = iv;
+			return aes;
 		}
 	}
 }
