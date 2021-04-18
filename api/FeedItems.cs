@@ -143,11 +143,11 @@ namespace FaithlifeReader.Functions
 				var container = Utility.CosmosClient.GetContainer("reader", "user_data");
 				try
 				{
-					await container.CreateItemAsync(userData, new PartitionKey(userData.UserId));
-				}
-				catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.Conflict)
-				{
 					await container.ReplaceItemAsync(userData, userData.Id, new PartitionKey(userData.UserId));
+				}
+				catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+				{
+					await container.CreateItemAsync(userData, new PartitionKey(userData.UserId));
 				}
 
 				return new NoContentResult();
