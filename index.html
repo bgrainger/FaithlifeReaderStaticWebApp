@@ -89,7 +89,7 @@
   }
 
   function PreloadNextPage(lastDate) {
-    nextPage = fetch(`/api/feeditems?lastReadDate=${encodeURIComponent(lastDate)}`)
+    nextPage = fetch(`/api/FeedItems?lastReadDate=${encodeURIComponent(lastDate)}`)
       .then(response => response.json());
   }
 

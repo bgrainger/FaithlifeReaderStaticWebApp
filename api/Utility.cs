@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Azure.Cosmos;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -11,7 +12,28 @@ namespace FaithlifeReader.Functions
 		public static string ConsumerToken => s_consumerToken ??= Environment.GetEnvironmentVariable("ConsumerToken")!;
 
 		public static string ConsumerSecret => s_consumerSecret ??= Environment.GetEnvironmentVariable("ConsumerSecret")!;
+
+		public static CosmosClient CosmosClient
+		{
+			get
+			{
+				if (s_cosmosClient is null)
+				{
+					s_cosmosClient = new CosmosClient(Environment.GetEnvironmentVariable("CosmosConnectionString"),
+						new CosmosClientOptions()
+						{
+							SerializerOptions = new CosmosSerializationOptions()
+							{
+								PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
+							}
+						});
+				}
+				return s_cosmosClient;
+			}
+		}
 		
+		public static Uri AccountsBaseUri { get; } = new Uri("https://accountsapi.logos.com/v1/");
+
 		public static Uri OAuthBaseUri { get; } = new Uri("https://auth.faithlife.com/v1/");
 
 		public static ReadOnlySpan<byte> SecretKey => (s_secretKey ??= Convert.FromBase64String(Environment.GetEnvironmentVariable("SecretKey")!)).AsSpan();
@@ -28,8 +50,11 @@ namespace FaithlifeReader.Functions
 			return ParseFormValues(content);
 		}
 
+		public static string Truncate(string value, int length) => value.Length <= length ? value : (value[..value.LastIndexOf(' ', length)] + "\u2026");
+
 		static string? s_consumerToken;
 		static string? s_consumerSecret;
+		static CosmosClient? s_cosmosClient;
 		static byte[]? s_secretKey;
 	}
 }
