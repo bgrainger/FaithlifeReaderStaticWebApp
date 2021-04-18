@@ -27,7 +27,7 @@
 <script type="text/javascript">
 
   function MarkAsRead(date) {
-    return fetch('/api/feeditems', {
+    return fetch('/api/FeedItems', {
       method: 'POST',
       mode: 'no-cors',
       headers: {
@@ -94,7 +94,7 @@
   }
 
   function LoadPage() {
-    fetch('/api/feeditems')
+    fetch('/api/FeedItems')
     .then(response => response.json())
     .then(SetCurrentPage);
   }
@@ -102,7 +102,7 @@
   function ScheduleCheckForNewItems() {
     if (currentPage.length !== 10) {
       timeoutId = setTimeout(() => {
-        fetch('/api/feeditems')
+        fetch('/api/FeedItems')
         .then(response => response.json())
         .then(items => {
           if (items.length !== currentPage.length) {

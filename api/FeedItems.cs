@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -21,7 +22,7 @@ namespace FaithlifeReader.Functions
 	{
 		[FunctionName("FeedItems")]
 		public static async Task<IActionResult> Run(
-			[HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)] HttpRequest req,
+			[HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
 			ILogger log)
 		{
 			log.LogInformation("FeedItems HTTP trigger function processing a request.");
@@ -43,67 +44,114 @@ namespace FaithlifeReader.Functions
 				return new ForbidResult();
 			log.LogInformation("Current User ID is {0}", currentUser.Id);
 
-			var container = Utility.CosmosClient.GetContainer("reader", "user_data");
-			var id = $"UserData:{currentUser.Id}";
-			var lastReadDate = req.Query["lastReadDate"].FirstOrDefault();
-			if (lastReadDate is null)
+			// dispatch the request
+			return req.Method switch
 			{
-				using (var responseMessage = await container.ReadItemStreamAsync(id, new PartitionKey(currentUser.Id.ToString())))
+				"GET" => await GetNewsFeedAsync(),
+				"POST" => await PostNewsFeedAsync(),
+				_ => new StatusCodeResult(405),
+			};
+
+			async Task<IActionResult> GetNewsFeedAsync()
+			{
+				// get the last read date for this user from CosmosDB
+				var container = Utility.CosmosClient.GetContainer("reader", "user_data");
+				var id = $"UserData:{currentUser.Id}";
+				var lastReadDate = req.Query["lastReadDate"].FirstOrDefault();
+				if (lastReadDate is null)
 				{
-					if (responseMessage.StatusCode != HttpStatusCode.NotFound)
+					using (var responseMessage = await container.ReadItemStreamAsync(id, new PartitionKey(currentUser.Id.ToString())))
 					{
-						var userData = await JsonSerializer.DeserializeAsync<UserDataDto>(responseMessage.Content, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
-						lastReadDate = userData?.LastReadDate;
-						log.LogInformation("Loaded lastReadDate={0} from CosmosDB", lastReadDate);
+						if (responseMessage.StatusCode != HttpStatusCode.NotFound)
+						{
+							var userData = await JsonSerializer.DeserializeAsync<UserDataDto>(responseMessage.Content, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+							lastReadDate = userData?.LastReadDate;
+							log.LogInformation("Loaded lastReadDate={0} from CosmosDB", lastReadDate);
+						}
 					}
 				}
-			}
-			lastReadDate ??= DateTime.UtcNow.AddDays(-1).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'");
+				lastReadDate ??= DateTime.UtcNow.AddDays(-1).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'");
 
-			string? lastPageDate = null;
-			var items = new List<UserFeedItem>();
+				string? lastPageDate = null;
+				var items = new List<UserFeedItem>();
 
-			var found = false;
-			while (!found)
-			{
-				log.LogInformation("Requesting a page of items starting at {0}", lastPageDate);
-
-				var uri = "https://api.faithlife.com/community/v1/newsfeed?sortBy=createdDate&repliesCount=0&count=100";
-				if (lastPageDate is not null)
-					uri += "&startDateTime=" + Uri.EscapeDataString(lastPageDate);
-
-				var newsfeedRequest = new HttpRequestMessage(HttpMethod.Get, uri);
-				newsfeedRequest.Headers.Add("X-CommunityServices-Version", "7");
-				newsfeedRequest.Headers.Authorization = AuthenticationHeaderValue.Parse(OAuthUtility.CreateHmacSha1AuthorizationHeaderValue(newsfeedRequest.RequestUri, "GET", Utility.ConsumerToken, Utility.ConsumerSecret, accessToken, accessSecret));
-				var response = await httpClient.SendAsync(newsfeedRequest);
-				var newsFeed = await response.Content.ReadAsAsync<NewsFeedDto>();
-				foreach (var item in newsFeed!.Items)
+				// keep retrieving items from CommunityServices until we reach the last read date
+				var found = false;
+				while (!found)
 				{
-					var handler = item.Kind switch
-					{
-						"calendarItem" => (IFeedItemHandler)new CalendarFeedItemHandler(item),
-						"discussionTopic" => new DiscussionTopicFeedItemHandler(item),
-						"comment" => new CommentFeedItemHandler(item),
-						"groupBulletin" => new GroupBulletinFeedItemHandler(item),
-						"newsletter" => new NewsletterFeedItemHandler(item),
-						"note" => new NoteFeedItemHandler(item),
-						"review" => new ReviewFeedItemHandler(item),
-						_ => throw new NotSupportedException($"Can't read details of kind '{item.Kind}' at '{uri}'"),
-					};
+					log.LogInformation("Requesting a page of items starting at {0}", lastPageDate);
 
-					lastPageDate = item.PageDate;
-					if (string.CompareOrdinal(lastPageDate, lastReadDate) <= 0)
+					var uri = "https://api.faithlife.com/community/v1/newsfeed?sortBy=createdDate&repliesCount=0&count=100";
+					if (lastPageDate is not null)
+						uri += "&startDateTime=" + Uri.EscapeDataString(lastPageDate);
+
+					// make the authenticated request
+					var newsfeedRequest = new HttpRequestMessage(HttpMethod.Get, uri);
+					newsfeedRequest.Headers.Add("X-CommunityServices-Version", "7");
+					newsfeedRequest.Headers.Authorization = AuthenticationHeaderValue.Parse(OAuthUtility.CreateHmacSha1AuthorizationHeaderValue(newsfeedRequest.RequestUri, "GET", Utility.ConsumerToken, Utility.ConsumerSecret, accessToken, accessSecret));
+					var response = await httpClient.SendAsync(newsfeedRequest);
+					var newsFeed = await response.Content.ReadAsAsync<NewsFeedDto>();
+					foreach (var item in newsFeed!.Items)
 					{
-						found = true;
-						break;
+						var handler = item.Kind switch
+						{
+							"calendarItem" => (IFeedItemHandler)new CalendarFeedItemHandler(item),
+							"discussionTopic" => new DiscussionTopicFeedItemHandler(item),
+							"comment" => new CommentFeedItemHandler(item),
+							"groupBulletin" => new GroupBulletinFeedItemHandler(item),
+							"newsletter" => new NewsletterFeedItemHandler(item),
+							"note" => new NoteFeedItemHandler(item),
+							"review" => new ReviewFeedItemHandler(item),
+							_ => throw new NotSupportedException($"Can't read details of kind '{item.Kind}' at '{uri}'"),
+						};
+
+						lastPageDate = item.PageDate;
+						if (string.CompareOrdinal(lastPageDate, lastReadDate) <= 0)
+						{
+							found = true;
+							break;
+						}
+
+						items.Add(new UserFeedItem(item.PageDate, handler.GetRelativeDate(), handler.Url, handler.Title, handler.Details));
 					}
-
-					items.Add(new UserFeedItem(item.PageDate, handler.GetRelativeDate(), handler.Url, handler.Title, handler.Details));
 				}
+
+				// return only the last 10 items
+				items.Reverse();
+				return new OkObjectResult(new List<UserFeedItem>(items.Take(10)));
 			}
 
-			items.Reverse();
-			return new OkObjectResult(new List<UserFeedItem>(items.Take(10)));
+			async Task<IActionResult> PostNewsFeedAsync()
+			{
+				using var streamReader = new StreamReader(req.Body);
+				var body = await streamReader.ReadToEndAsync();
+				var bodyValues = Utility.ParseFormValues(body);
+				var lastReadDate = bodyValues.GetValueOrDefault("lastReadDate");
+
+				if (string.IsNullOrEmpty(lastReadDate))
+					return new BadRequestObjectResult("Missing 'lastReadDate'");
+
+				log.LogInformation("Storing lastReadDate={0} in CosmosDB", lastReadDate);
+
+				var userData = new UserDataDto
+				{
+					Id = $"UserData:{currentUser.Id}",
+					UserId = currentUser.Id.ToString(),
+					LastReadDate = lastReadDate,
+				};
+
+				var container = Utility.CosmosClient.GetContainer("reader", "user_data");
+				try
+				{
+					await container.CreateItemAsync(userData, new PartitionKey(userData.UserId));
+				}
+				catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.Conflict)
+				{
+					await container.ReplaceItemAsync(userData, userData.Id, new PartitionKey(userData.UserId));
+				}
+
+				return new NoContentResult();
+			}
 		}
 
 		private static (string AccessToken, string AccessSecret) GetCredentials(HttpRequest request)
