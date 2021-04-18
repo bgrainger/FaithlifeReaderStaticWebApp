@@ -1,0 +1,141 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Faithlife Reader</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="/site.css" />
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <div class="container">
+                <a class="navbar-brand" href="/"><img width="21" height="32" alt="Faithlife Logo" src="https://files.logoscdn.com/v1/assets/844151/optimized?h=32" style="margin-right: 8px" />Faithlife Reader</a>
+            </div>
+        </nav>
+    </header>
+    <div class="container">
+        <main role="main" class="pb-3">
+
+<h2 id="loading">Loading&hellip;</h2>
+
+<div id="postsContainer" style="display: none">
+</div>
+
+<script type="text/javascript">
+
+  function MarkAsRead(date) {
+    return fetch('/api/feeditems', {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: 'lastReadDate=' + encodeURIComponent(date),
+    })
+  }
+
+  function ShowItems(items) {
+    document.getElementById('loading').style.display = 'none';
+    const postsContainer = document.getElementById('postsContainer');
+    postsContainer.style.display = 'block';
+    postsContainer.innerText = '';
+
+    const posts = document.createElement('div');
+    posts.className = 'posts';
+    postsContainer.appendChild(posts);
+
+    items.forEach((item) => {
+      const heading = document.createElement('h3');
+      const link = document.createElement('a');
+      link.innerText = item.title;
+      link.target = '_blank';
+      link.href = item.url;
+      heading.appendChild(link);
+      posts.appendChild(heading);
+
+      const date = document.createElement('p');
+      date.className = 'date';
+      date.innerText = item.relativeDate;
+      posts.appendChild(date);
+
+      const text = document.createElement('p');
+      text.innerText = item.details;
+      posts.appendChild(text);
+    });
+
+    if (items.length !== 0) {
+      const button = document.createElement('button');
+      button.className = 'btn btn-primary';
+      button.innerText = 'Mark as Read';
+      button.onclick = event => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = 0;
+        }
+        button.disabled = true;
+        MarkAsRead(items[items.length - 1].date)
+          .then(() => nextPage)
+          .then(SetCurrentPage);
+      };
+      postsContainer.appendChild(button);
+    } else {
+      const message = document.createElement('h4');
+      message.innerText = "Checking for new posts\u2026";
+      postsContainer.appendChild(message);
+    }
+  }
+
+  function PreloadNextPage(lastDate) {
+    nextPage = fetch(`/api/feeditems?lastReadDate=${encodeURIComponent(lastDate)}`)
+      .then(response => response.json());
+  }
+
+  function LoadPage() {
+    fetch('/api/feeditems')
+    .then(response => response.json())
+    .then(SetCurrentPage);
+  }
+
+  function ScheduleCheckForNewItems() {
+    if (currentPage.length !== 10) {
+      timeoutId = setTimeout(() => {
+        fetch('/api/feeditems')
+        .then(response => response.json())
+        .then(items => {
+          if (items.length !== currentPage.length) {
+            SetCurrentPage(items);
+          } else {
+            ScheduleCheckForNewItems();
+          }
+        });
+      }, 30000);
+    }
+  }
+
+  function SetCurrentPage(items) {
+    currentPage = items;
+    ShowItems(currentPage);
+    if (currentPage.length !== 0) {
+      PreloadNextPage(currentPage[currentPage.length - 1].date);
+    }
+    ScheduleCheckForNewItems();
+  }
+
+  LoadPage();
+
+  let currentPage = [];
+  let nextPage = Promise.resolve([]);
+  let timeoutId = 0;
+</script>
+
+        </main>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js" integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+</body>
+</html>
