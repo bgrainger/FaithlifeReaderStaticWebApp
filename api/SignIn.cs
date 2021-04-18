@@ -1,12 +1,16 @@
 using System;
-using System.IO;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
+using Faithlife.OAuth;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 
 namespace FaithlifeReader.Functions
 {
@@ -14,22 +18,38 @@ namespace FaithlifeReader.Functions
 	{
 		[FunctionName("SignIn")]
 		public static async Task<IActionResult> Run(
-			[HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
+			[HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)] HttpRequest req,
 			ILogger log)
 		{
-			log.LogInformation("C# HTTP trigger function processed a request.");
+			log.LogInformation("SignIn HTTP trigger function processing a request.");
 
-			string name = req.Query["name"];
+			var finalUri = new Uri(new Uri(req.GetEncodedUrl()), "/");
+			var callbackUri = new Uri(new Uri(req.GetEncodedUrl()), $"OAuthSignIn?redirect={Uri.EscapeDataString(finalUri.AbsoluteUri)}");
+			log.LogDebug("Callback URI is {0}", callbackUri.AbsoluteUri);
+			var temporaryTokenMessage = new HttpRequestMessage(HttpMethod.Post, new Uri(Utility.OAuthBaseUri, "temporarytoken?allowSession=true"));
+			temporaryTokenMessage.Headers.Authorization = AuthenticationHeaderValue.Parse(OAuthUtility.CreateAuthorizationHeaderValue(Utility.ConsumerToken, Utility.ConsumerSecret, callbackUri.AbsoluteUri));
 
-			string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-			dynamic data = JsonConvert.DeserializeObject(requestBody);
-			name = name ?? data?.name;
+			using var httpClient = new HttpClient();
+			var temporaryToken = await Utility.GetFormValuesAsync(httpClient, temporaryTokenMessage);
+			var oauthToken = temporaryToken["oauth_token"];
+			var oauthSecret = temporaryToken["oauth_token_secret"];
+			var callbackConfirmed = temporaryToken["oauth_callback_confirmed"];
+			log.LogDebug("token={0}, secret={1}", oauthToken, oauthSecret);
 
-			string responseMessage = string.IsNullOrEmpty(name)
-				? "This HTTP triggered function executed successfully. Pass a name in the query string or in the request body for a personalized response."
-				: $"Hello, {name}. This HTTP triggered function executed successfully.";
+			lock (s_cache)
+				s_cache[oauthToken] = oauthSecret;
 
-			return new OkObjectResult(responseMessage);
+			var authUri = new Uri(Utility.OAuthBaseUri, $"authorize?brand=faithlife&oauth_token={Uri.EscapeDataString(oauthToken)}");
+			log.LogInformation("Redirecting to {0}", authUri.AbsoluteUri);
+			return new RedirectResult(authUri.AbsoluteUri);
 		}
+
+		public static string GetSecret(string token)
+		{
+			lock (s_cache)
+				return s_cache[token];
+		}
+
+		static readonly Dictionary<string, string> s_cache = new Dictionary<string, string>();
 	}
 }
