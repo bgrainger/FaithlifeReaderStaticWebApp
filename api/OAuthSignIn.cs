@@ -1,28 +1,29 @@
 using System;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
+using System.Web;
 using Faithlife.OAuth;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.Http;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 
 namespace FaithlifeReader.Functions
 {
-	public static class OAuthSignIn
+	public class OAuthSignIn
 	{
-		[FunctionName("OAuthSignIn")]
-		public static async Task<IActionResult> Run(
-			[HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)] HttpRequest req,
-			ILogger log)
+		[Function("OAuthSignIn")]
+		public async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req,
+			FunctionContext executionContext)
 		{
+			var log = executionContext.GetLogger("OAuthSignIn");
 			log.LogInformation("OAuthSignIn HTTP trigger function processing a request.");
 
-			string oauthToken = req.Query["oauth_token"];
-			var oauthVerifier = req.Query["oauth_verifier"];
-			var redirectUri = req.Query["redirect"];
+			var queryParameters = HttpUtility.ParseQueryString(req.Url.Query);
+			var oauthToken = queryParameters["oauth_token"];
+			var oauthVerifier = queryParameters["oauth_verifier"];
+			var redirectUri = queryParameters["redirect"];
 			log.LogDebug("token={0}, verifier={1}", oauthToken, oauthVerifier);
 
 			var accessCredentialsMessage = new HttpRequestMessage(HttpMethod.Post, new Uri(Utility.OAuthBaseUri, "accesstoken"));
@@ -35,13 +36,13 @@ namespace FaithlifeReader.Functions
 			var oauthSecret = accessCredentials["oauth_token_secret"];
 			log.LogDebug("token={0}, secret={1}", oauthToken, oauthSecret);
 
-			var options = new CookieOptions { Expires = DateTimeOffset.UtcNow.AddYears(1), HttpOnly = true };
-
 			var dataToEncrypt = $"{oauthToken}/{oauthSecret}";
 			var encryptedAuth = Encryption.Encrypt(dataToEncrypt);
-			req.HttpContext.Response.Cookies.Append("faithlife-reader-auth", Convert.ToBase64String(encryptedAuth), options);
 
-			return new RedirectResult(redirectUri);
+			var response = req.CreateResponse(HttpStatusCode.Redirect);
+			response.Headers.Add("Location", redirectUri);
+			response.Cookies.Append("faithlife-reader-auth", Convert.ToBase64String(encryptedAuth));
+			return response;
 		}
 	}
 }

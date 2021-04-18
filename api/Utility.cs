@@ -1,5 +1,4 @@
-﻿using Microsoft.Azure.Cosmos;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -13,25 +12,6 @@ namespace FaithlifeReader.Functions
 
 		public static string ConsumerSecret => s_consumerSecret ??= Environment.GetEnvironmentVariable("ConsumerSecret")!;
 
-		public static CosmosClient CosmosClient
-		{
-			get
-			{
-				if (s_cosmosClient is null)
-				{
-					s_cosmosClient = new CosmosClient(Environment.GetEnvironmentVariable("CosmosConnectionString"),
-						new CosmosClientOptions()
-						{
-							SerializerOptions = new CosmosSerializationOptions()
-							{
-								PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
-							}
-						});
-				}
-				return s_cosmosClient;
-			}
-		}
-		
 		public static Uri AccountsBaseUri { get; } = new Uri("https://accountsapi.logos.com/v1/");
 
 		public static Uri OAuthBaseUri { get; } = new Uri("https://auth.faithlife.com/v1/");
@@ -54,7 +34,6 @@ namespace FaithlifeReader.Functions
 
 		static string? s_consumerToken;
 		static string? s_consumerSecret;
-		static CosmosClient? s_cosmosClient;
 		static byte[]? s_secretKey;
 	}
 }

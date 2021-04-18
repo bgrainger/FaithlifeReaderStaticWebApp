@@ -66,7 +66,7 @@ namespace FaithlifeReader.Functions
 			inputData.AddRange(BitConverter.GetBytes((long) iv.Length * 8));
 			inputData.AddRange(BitConverter.GetBytes(0L));
 			hmac.TransformFinalBlock(inputData.ToArray(), 0, inputData.Count);
-			return hmac.Hash;
+			return hmac.Hash!;
 		}
 	}
 }
