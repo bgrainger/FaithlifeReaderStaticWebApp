@@ -5,6 +5,7 @@
     <AzureFunctionsVersion>v3</AzureFunctionsVersion>
     <OutputType>Exe</OutputType>
     <_FunctionsSkipCleanOutput>true</_FunctionsSkipCleanOutput>
+    <_FunctionsExtensionTargetFramework>netstandard2.0</_FunctionsExtensionTargetFramework>
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
