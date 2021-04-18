@@ -8,13 +8,13 @@ namespace FaithlifeReader.Functions
 {
 	internal static class Utility
 	{
-		public static string ConsumerToken => s_consumerToken ??= Environment.GetEnvironmentVariable("ConsumerToken");
+		public static string ConsumerToken => s_consumerToken ??= Environment.GetEnvironmentVariable("ConsumerToken")!;
 
-		public static string ConsumerSecret => s_consumerSecret ??= Environment.GetEnvironmentVariable("ConsumerSecret");
+		public static string ConsumerSecret => s_consumerSecret ??= Environment.GetEnvironmentVariable("ConsumerSecret")!;
 		
 		public static Uri OAuthBaseUri { get; } = new Uri("https://auth.faithlife.com/v1/");
 
-		public static ReadOnlySpan<byte> SecretKey => (s_secretKey ??= Convert.FromBase64String(Environment.GetEnvironmentVariable("SecretKey"))).AsSpan();
+		public static ReadOnlySpan<byte> SecretKey => (s_secretKey ??= Convert.FromBase64String(Environment.GetEnvironmentVariable("SecretKey")!)).AsSpan();
 
 		public static IReadOnlyDictionary<string, string> ParseFormValues(string value) =>
 			value.Split('&')
@@ -28,8 +28,8 @@ namespace FaithlifeReader.Functions
 			return ParseFormValues(content);
 		}
 
-		static string s_consumerToken;
-		static string s_consumerSecret;
-		static byte[] s_secretKey;
+		static string? s_consumerToken;
+		static string? s_consumerSecret;
+		static byte[]? s_secretKey;
 	}
 }

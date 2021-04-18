@@ -32,7 +32,7 @@ namespace FaithlifeReader.Functions
 			return output;
 		}
 
-		public static string Decrypt(byte[] input)
+		public static string? Decrypt(byte[] input)
 		{
 			var iv = input[0..16].ToArray();
 			var encryptedData = input[16..^32].ToArray();
