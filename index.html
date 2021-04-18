@@ -95,8 +95,14 @@
 
   function LoadPage() {
     fetch('/api/FeedItems')
-    .then(response => response.json())
-    .then(SetCurrentPage);
+        .then(response => {
+            if (response.status == 200)
+                return response.json().then(SetCurrentPage);
+            else if (response.status == 403)
+                window.location = new URL('/api/SignIn', window.location).toString() + `?redirect=${encodeURI(window.location)}`;
+            else
+                document.getElementById('loading').innerText = 'Error loading feed';
+        });
   }
 
   function ScheduleCheckForNewItems() {

@@ -30,7 +30,7 @@ namespace FaithlifeReader.Functions
 			// get user's credentials from the cookie
 			var (accessToken, accessSecret) = GetCredentials(req, log);
 			if (accessToken is null)
-				return new ForbidResult();
+				return new StatusCodeResult(403);
 
 			// get user's ID from AccountServices
 			using var httpClient = new HttpClient();
@@ -38,10 +38,10 @@ namespace FaithlifeReader.Functions
 			getCurrentUserRequest.Headers.Authorization = AuthenticationHeaderValue.Parse(OAuthUtility.CreateHmacSha1AuthorizationHeaderValue(getCurrentUserRequest.RequestUri, "GET", Utility.ConsumerToken, Utility.ConsumerSecret, accessToken, accessSecret));
 			var getCurrentUserResponse = await httpClient.SendAsync(getCurrentUserRequest);
 			if (!getCurrentUserResponse.IsSuccessStatusCode)
-				return new ForbidResult();
+				return new StatusCodeResult(403);
 			var currentUser = await getCurrentUserResponse.Content.ReadAsAsync<UserDto>();
 			if (currentUser.Id <= 0)
-				return new ForbidResult();
+				return new StatusCodeResult(403);
 			log.LogInformation("Current User ID is {0}", currentUser.Id);
 
 			// dispatch the request
