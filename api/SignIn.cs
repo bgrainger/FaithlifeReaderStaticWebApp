@@ -1,12 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using Faithlife.OAuth;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
@@ -50,6 +48,6 @@ namespace FaithlifeReader.Functions
 				return s_cache[token];
 		}
 
-		static readonly Dictionary<string, string> s_cache = new Dictionary<string, string>();
+		static readonly Dictionary<string, string> s_cache = new();
 	}
 }
