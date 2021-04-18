@@ -166,11 +166,11 @@ namespace FaithlifeReader.Functions
 			byte[] encryptedCookie;
 			try
 			{
-				encryptedCookie =Convert.FromBase64String(encodedCookie);
+				encryptedCookie =Convert.FromBase64String(Uri.UnescapeDataString(encodedCookie));
 			}
-			catch (FormatException)
+			catch (FormatException ex)
 			{
-				log.LogInformation("Couldn't Base64-decode auth cookie");
+				log.LogInformation("Couldn't Base64-decode auth cookie: {0}", ex.Message);
 				return default;
 			}
 
