@@ -118,6 +118,7 @@ namespace FaithlifeReader.Functions
 
 				// return only the last 10 items
 				items.Reverse();
+				req.HttpContext.Response.Headers["Cache-Control"] = "no-store, max-age=0";
 				return new OkObjectResult(new List<UserFeedItem>(items.Take(10)));
 			}
 
