@@ -40,6 +40,7 @@ namespace FaithlifeReader.Functions
 			var dataToEncrypt = $"{oauthToken}/{oauthSecret}";
 			var encryptedAuth = Encryption.Encrypt(dataToEncrypt);
 			req.HttpContext.Response.Cookies.Append("faithlife-reader-auth", Convert.ToBase64String(encryptedAuth), options);
+			req.HttpContext.Response.Headers["Cache-Control"] = "no-store, max-age=0";
 
 			return new RedirectResult(redirectUri);
 		}

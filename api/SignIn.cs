@@ -39,6 +39,7 @@ namespace FaithlifeReader.Functions
 
 			var authUri = new Uri(Utility.OAuthBaseUri, $"authorize?brand=faithlife&oauth_token={Uri.EscapeDataString(oauthToken)}");
 			log.LogInformation("Redirecting to {0}", authUri.AbsoluteUri);
+			req.HttpContext.Response.Headers["Cache-Control"] = "no-store, max-age=0";
 			return new RedirectResult(authUri.AbsoluteUri);
 		}
 
