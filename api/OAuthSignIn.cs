@@ -26,11 +26,10 @@ namespace FaithlifeReader.Functions
 			log.LogDebug("token={0}, verifier={1}", oauthToken, oauthVerifier);
 
 			var accessCredentialsMessage = new HttpRequestMessage(HttpMethod.Post, new Uri(Utility.OAuthBaseUri, "accesstoken"));
-			var auth = OAuthUtility.CreateAuthorizationHeaderValue(Utility.ConsumerToken, Utility.ConsumerSecret, oauthToken, SignIn.GetSecret(oauthToken), oauthVerifier);
-			accessCredentialsMessage.Headers.Authorization = AuthenticationHeaderValue.Parse(auth);
+			accessCredentialsMessage.Headers.Authorization = AuthenticationHeaderValue.Parse(OAuthUtility.CreateAuthorizationHeaderValue(Utility.ConsumerToken, Utility.ConsumerSecret, oauthToken, SignIn.GetSecret(oauthToken), oauthVerifier));
 
 			using var httpClient = new HttpClient();
-			var accessCredentials = await Utility.GetFormValuesAsync(httpClient, accessCredentialsMessage);
+			var accessCredentials = await httpClient.GetFormValuesAsync(accessCredentialsMessage);
 			oauthToken = accessCredentials["oauth_token"];
 			var oauthSecret = accessCredentials["oauth_token_secret"];
 			log.LogDebug("token={0}, secret={1}", oauthToken, oauthSecret);

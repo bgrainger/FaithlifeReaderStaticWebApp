@@ -4,10 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Faithlife.OAuth;
 using FaithlifeReader.Functions.Dtos;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -35,7 +33,7 @@ namespace FaithlifeReader.Functions
 			// get user's ID from AccountServices
 			using var httpClient = new HttpClient();
 			var getCurrentUserRequest = new HttpRequestMessage(HttpMethod.Get, new Uri(Utility.AccountsBaseUri, "users/me"));
-			getCurrentUserRequest.Headers.Authorization = AuthenticationHeaderValue.Parse(OAuthUtility.CreateHmacSha1AuthorizationHeaderValue(getCurrentUserRequest.RequestUri, "GET", Utility.ConsumerToken, Utility.ConsumerSecret, accessToken, accessSecret));
+			getCurrentUserRequest.AddAuthorizationHeader(accessToken, accessSecret);
 			var getCurrentUserResponse = await httpClient.SendAsync(getCurrentUserRequest);
 			if (!getCurrentUserResponse.IsSuccessStatusCode)
 				return new StatusCodeResult(403);
@@ -88,7 +86,7 @@ namespace FaithlifeReader.Functions
 					// make the authenticated request
 					var newsfeedRequest = new HttpRequestMessage(HttpMethod.Get, uri);
 					newsfeedRequest.Headers.Add("X-CommunityServices-Version", "7");
-					newsfeedRequest.Headers.Authorization = AuthenticationHeaderValue.Parse(OAuthUtility.CreateHmacSha1AuthorizationHeaderValue(newsfeedRequest.RequestUri, "GET", Utility.ConsumerToken, Utility.ConsumerSecret, accessToken, accessSecret));
+					newsfeedRequest.AddAuthorizationHeader(accessToken, accessSecret);
 					var response = await httpClient.SendAsync(newsfeedRequest);
 					var newsFeed = await response.Content.ReadAsAsync<NewsFeedDto>();
 					foreach (var item in newsFeed!.Items)
@@ -163,7 +161,7 @@ namespace FaithlifeReader.Functions
 			byte[] encryptedCookie;
 			try
 			{
-				encryptedCookie =Convert.FromBase64String(Uri.UnescapeDataString(encodedCookie));
+				encryptedCookie = Convert.FromBase64String(Uri.UnescapeDataString(encodedCookie));
 			}
 			catch (FormatException ex)
 			{

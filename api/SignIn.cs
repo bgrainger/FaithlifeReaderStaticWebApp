@@ -28,7 +28,7 @@ namespace FaithlifeReader.Functions
 			temporaryTokenMessage.Headers.Authorization = AuthenticationHeaderValue.Parse(OAuthUtility.CreateAuthorizationHeaderValue(Utility.ConsumerToken, Utility.ConsumerSecret, callbackUri.AbsoluteUri));
 
 			using var httpClient = new HttpClient();
-			var temporaryToken = await Utility.GetFormValuesAsync(httpClient, temporaryTokenMessage);
+			var temporaryToken = await httpClient.GetFormValuesAsync(temporaryTokenMessage);
 			var oauthToken = temporaryToken["oauth_token"];
 			var oauthSecret = temporaryToken["oauth_token_secret"];
 			var callbackConfirmed = temporaryToken["oauth_callback_confirmed"];

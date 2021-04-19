@@ -1,9 +1,11 @@
-﻿using Microsoft.Azure.Cosmos;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
+using Faithlife.OAuth;
+using Microsoft.Azure.Cosmos;
 
 namespace FaithlifeReader.Functions
 {
@@ -49,6 +51,9 @@ namespace FaithlifeReader.Functions
 			var content = await response.Content.ReadAsStringAsync();
 			return ParseFormValues(content);
 		}
+
+		public static void AddAuthorizationHeader(this HttpRequestMessage request, string accessToken, string accessSecret) =>
+			request.Headers.Authorization = AuthenticationHeaderValue.Parse(OAuthUtility.CreateHmacSha1AuthorizationHeaderValue(request.RequestUri, request.Method.ToString().ToUpperInvariant(), Utility.ConsumerToken, Utility.ConsumerSecret, accessToken, accessSecret));
 
 		public static string Truncate(string value, int length) => value.Length <= length ? value : (value[..value.LastIndexOf(' ', length)] + "\u2026");
 
