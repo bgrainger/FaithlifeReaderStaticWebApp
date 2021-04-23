@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
+using System.Web;
 using Faithlife.OAuth;
 using Microsoft.Azure.Cosmos;
 
@@ -40,16 +42,11 @@ namespace FaithlifeReader.Functions
 
 		public static ReadOnlySpan<byte> SecretKey => (s_secretKey ??= Convert.FromBase64String(Environment.GetEnvironmentVariable("SecretKey")!)).AsSpan();
 
-		public static IReadOnlyDictionary<string, string> ParseFormValues(string value) =>
-			value.Split('&')
-				.Select(x => x.Split('=', 2))
-				.ToDictionary(x => Uri.UnescapeDataString(x[0]), x => Uri.UnescapeDataString(x[1]));
-
-		public static async Task<IReadOnlyDictionary<string, string>> GetFormValuesAsync(this HttpClient httpClient, HttpRequestMessage request)
+		public static async Task<NameValueCollection> GetFormValuesAsync(this HttpClient httpClient, HttpRequestMessage request)
 		{
 			var response = await httpClient.SendAsync(request);
 			var content = await response.Content.ReadAsStringAsync();
-			return ParseFormValues(content);
+			return HttpUtility.ParseQueryString(content);
 		}
 
 		public static void AddAuthorizationHeader(this HttpRequestMessage request, string accessToken, string accessSecret) =>

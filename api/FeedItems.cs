@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Web;
 using FaithlifeReader.Functions.Dtos;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -124,8 +125,7 @@ namespace FaithlifeReader.Functions
 			{
 				using var streamReader = new StreamReader(req.Body);
 				var body = await streamReader.ReadToEndAsync();
-				var bodyValues = Utility.ParseFormValues(body);
-				var lastReadDate = bodyValues.GetValueOrDefault("lastReadDate");
+				var lastReadDate = HttpUtility.ParseQueryString(body)["lastReadDate"];
 
 				if (string.IsNullOrEmpty(lastReadDate))
 					return new BadRequestObjectResult("Missing 'lastReadDate'");
