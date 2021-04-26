@@ -78,7 +78,8 @@
         button.disabled = true;
         MarkAsRead(items[items.length - 1].date)
           .then(() => nextPage)
-          .then(SetCurrentPage);
+          .then(SetCurrentPage)
+          .then(() => window.scrollTo(0, 0));
       };
       postsContainer.appendChild(button);
     } else {
