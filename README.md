@@ -3,7 +3,7 @@
 This is an [Azure Static Web App](https://docs.microsoft.com/en-us/azure/static-web-apps/overview) that displays
 pages of items from your Faithlife news feed in chronological order.
 
-It's currently deployed at https://red-dune-00b29c51e.azurestaticapps.net/
+It's currently deployed at https://flreader.bgrainger.dev/.
 
 ## Build Status
 
