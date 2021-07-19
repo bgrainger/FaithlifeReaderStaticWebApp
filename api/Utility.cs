@@ -52,7 +52,10 @@ namespace FaithlifeReader.Functions
 		public static void AddAuthorizationHeader(this HttpRequestMessage request, string accessToken, string accessSecret) =>
 			request.Headers.Authorization = AuthenticationHeaderValue.Parse(OAuthUtility.CreateHmacSha1AuthorizationHeaderValue(request.RequestUri, request.Method.ToString().ToUpperInvariant(), Utility.ConsumerToken, Utility.ConsumerSecret, accessToken, accessSecret));
 
-		public static string Truncate(string value, int length) => value.Length <= length ? value : (value[..value.LastIndexOf(' ', length)] + "\u2026");
+		public static string Truncate(string value, int length) =>
+			value.Length <= length ? value :
+			value.LastIndexOf(' ', length) == -1 ? (value.Substring(0, length) + "\u2026") :
+			(value[..value.LastIndexOf(' ', length)] + "\u2026");
 
 		static string? s_consumerToken;
 		static string? s_consumerSecret;
