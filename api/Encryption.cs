@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -58,15 +57,12 @@ namespace FaithlifeReader.Functions
 			return Encoding.UTF8.GetString(decryptedData);
 		}
 
-		private static byte[] ComputeMac(byte[] macKey, byte[] iv, byte[] encryptedData)
+		private static byte[] ComputeMac(ReadOnlySpan<byte> macKey, ReadOnlySpan<byte> iv, ReadOnlySpan<byte> encryptedData)
 		{
-			using var hmac = new HMACSHA256(macKey);
-			var inputData = new List<byte>();
-			inputData.AddRange(iv);
-			inputData.AddRange(encryptedData);
-			inputData.AddRange(BitConverter.GetBytes(0L));
-			hmac.TransformFinalBlock(inputData.ToArray(), 0, inputData.Count);
-			return hmac.Hash!;
+			Span<byte> inputData = stackalloc byte[iv.Length + encryptedData.Length + 8];
+			iv.CopyTo(inputData);
+			encryptedData.CopyTo(inputData.Slice(iv.Length));
+			return HMACSHA256.HashData(macKey, inputData);
 		}
 
 		private static Aes CreateAes(byte[] key, byte[]? iv = null)
