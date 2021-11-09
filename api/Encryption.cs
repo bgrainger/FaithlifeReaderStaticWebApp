@@ -66,7 +66,7 @@ namespace FaithlifeReader.Functions
 			inputData.AddRange(encryptedData);
 			inputData.AddRange(BitConverter.GetBytes(0L));
 			hmac.TransformFinalBlock(inputData.ToArray(), 0, inputData.Count);
-			return hmac.Hash;
+			return hmac.Hash!;
 		}
 
 		private static Aes CreateAes(byte[] key, byte[]? iv = null)

@@ -20,23 +20,27 @@ namespace FaithlifeReader.Functions
 		{
 			log.LogInformation("OAuthSignIn HTTP trigger function processing a request.");
 
-			string oauthToken = req.Query["oauth_token"];
+			var oauthToken = req.Query["oauth_token"];
 			var oauthVerifier = req.Query["oauth_verifier"];
 			var redirectUri = req.Query["redirect"];
 			log.LogDebug("token={0}, verifier={1}", oauthToken, oauthVerifier);
+			if (oauthToken.Count != 1 || oauthVerifier.Count != 1 || redirectUri.Count != 1)
+				return new BadRequestResult();
 
 			var accessCredentialsMessage = new HttpRequestMessage(HttpMethod.Post, new Uri(Utility.OAuthBaseUri, "accesstoken"));
 			accessCredentialsMessage.Headers.Authorization = AuthenticationHeaderValue.Parse(OAuthUtility.CreateAuthorizationHeaderValue(Utility.ConsumerToken, Utility.ConsumerSecret, oauthToken, SignIn.GetSecret(oauthToken), oauthVerifier));
 
 			using var httpClient = new HttpClient();
 			var accessCredentials = await httpClient.GetFormValuesAsync(accessCredentialsMessage);
-			oauthToken = accessCredentials["oauth_token"];
-			var oauthSecret = accessCredentials["oauth_token_secret"];
-			log.LogDebug("token={0}, secret={1}", oauthToken, oauthSecret);
+			var accessToken = accessCredentials["oauth_token"];
+			var accessSecret = accessCredentials["oauth_token_secret"];
+			log.LogDebug("token={0}, secret={1}", accessToken, accessSecret);
+			if (accessToken is null || accessSecret is null)
+				return new BadRequestResult();
 
 			var options = new CookieOptions { Expires = DateTimeOffset.UtcNow.AddYears(1), HttpOnly = true };
 
-			var dataToEncrypt = $"{oauthToken}/{oauthSecret}";
+			var dataToEncrypt = $"{accessToken}/{accessSecret}";
 			var encryptedAuth = Encryption.Encrypt(dataToEncrypt);
 			req.HttpContext.Response.Cookies.Append("faithlife-reader-auth", Convert.ToBase64String(encryptedAuth), options);
 			req.HttpContext.Response.Headers["Cache-Control"] = "no-store, max-age=0";

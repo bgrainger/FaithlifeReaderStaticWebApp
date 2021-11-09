@@ -33,6 +33,8 @@ namespace FaithlifeReader.Functions
 			var oauthSecret = temporaryToken["oauth_token_secret"];
 			var callbackConfirmed = temporaryToken["oauth_callback_confirmed"];
 			log.LogDebug("token={0}, secret={1}", oauthToken, oauthSecret);
+			if (oauthToken is null || oauthSecret is null)
+				return new BadRequestResult();
 
 			lock (s_cache)
 				s_cache[oauthToken] = oauthSecret;
