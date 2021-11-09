@@ -35,7 +35,12 @@ public class EncryptionTests
 	[InlineData("qFHL7De2YCUFayfCHIfBkEXUNJjrtLnibF4qJg/Nz8L9DvRqKxvJ3K6WKbXzQn/p0Vv9oSuWdbGGT3owVYXq/Q==")]
 	public void Decrypt(string encrypted)
 	{
-		var decrypted = Encryption.Decrypt(Convert.FromBase64String(encrypted));
+		var encryptedBytes = Convert.FromBase64String(encrypted);
+		var decrypted = Encryption.Decrypt(encryptedBytes);
 		Assert.Equal("the data", decrypted);
+
+		// corrupt the MAC
+		encryptedBytes[^1] ^= 0xFF;
+		Assert.Null(Encryption.Decrypt(encryptedBytes));
 	}
 }
