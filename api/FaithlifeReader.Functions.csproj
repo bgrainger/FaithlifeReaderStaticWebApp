@@ -11,6 +11,7 @@
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="4.0.1" />
   </ItemGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="FaithlifeReader.Functions.Tests" />
     <None Update="host.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

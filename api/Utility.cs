@@ -57,6 +57,8 @@ namespace FaithlifeReader.Functions
 			value.LastIndexOf(' ', length) == -1 ? (value.Substring(0, length) + "\u2026") :
 			(value[..value.LastIndexOf(' ', length)] + "\u2026");
 
+		internal static void SetSecretKey(byte[] secretKey) => s_secretKey = secretKey;
+
 		static string? s_consumerToken;
 		static string? s_consumerSecret;
 		static CosmosClient? s_cosmosClient;
