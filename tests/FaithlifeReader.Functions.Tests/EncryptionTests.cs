@@ -1,7 +1,3 @@
-using System;
-using System.Linq;
-using Xunit;
-
 namespace FaithlifeReader.Functions.Tests;
 
 public class EncryptionTests

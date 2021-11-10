@@ -1,5 +1,4 @@
-﻿using System;
-using FaithlifeReader.Functions.Dtos;
+﻿using FaithlifeReader.Functions.Dtos;
 using static FaithlifeReader.Functions.Utility;
 
 namespace FaithlifeReader.Functions
