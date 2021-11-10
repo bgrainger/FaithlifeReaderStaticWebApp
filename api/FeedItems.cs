@@ -59,14 +59,12 @@ namespace FaithlifeReader.Functions
 				var lastReadDate = req.Query["lastReadDate"].FirstOrDefault();
 				if (lastReadDate is null)
 				{
-					using (var responseMessage = await container.ReadItemStreamAsync(id, new PartitionKey(currentUser.Id.ToString())))
+					using var responseMessage = await container.ReadItemStreamAsync(id, new PartitionKey(currentUser.Id.ToString()));
+					if (responseMessage.StatusCode != HttpStatusCode.NotFound)
 					{
-						if (responseMessage.StatusCode != HttpStatusCode.NotFound)
-						{
-							var userData = await JsonSerializer.DeserializeAsync<UserDataDto>(responseMessage.Content, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
-							lastReadDate = userData?.LastReadDate;
-							log.LogInformation("Loaded lastReadDate={0} from CosmosDB", lastReadDate);
-						}
+						var userData = await JsonSerializer.DeserializeAsync<UserDataDto>(responseMessage.Content, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+						lastReadDate = userData?.LastReadDate;
+						log.LogInformation("Loaded lastReadDate={0} from CosmosDB", lastReadDate);
 					}
 				}
 				lastReadDate ??= DateTime.UtcNow.AddDays(-1).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'");
@@ -111,14 +109,13 @@ namespace FaithlifeReader.Functions
 							break;
 						}
 
-						items.Add(new UserFeedItem(item.PageDate, handler.GetRelativeDate(), handler.Url, handler.Title, handler.Details));
+						items.Add(new(item.PageDate, handler.GetRelativeDate(), handler.Url, handler.Title, handler.Details));
 					}
 				}
 
 				// return only the last 10 items
-				items.Reverse();
 				req.HttpContext.Response.Headers["Cache-Control"] = "no-store, max-age=0";
-				return new OkObjectResult(new List<UserFeedItem>(items.Take(10)));
+				return new OkObjectResult(new List<UserFeedItem>(items.Take(^10..).Reverse()));
 			}
 
 			async Task<IActionResult> PostNewsFeedAsync()
