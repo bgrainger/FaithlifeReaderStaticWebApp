@@ -27,31 +27,17 @@ namespace FaithlifeReader.Functions
 		}
 	}
 
-	internal readonly struct CalendarFeedItemHandler : IFeedItemHandler
+	internal readonly record struct CalendarFeedItemHandler(ItemDto Item) : IFeedItemHandler
 	{
-		public CalendarFeedItemHandler(ItemDto item)
-		{
-			Item = item;
-			CalendarItem = item.CalendarItem!;
-		}
-
-		public ItemDto Item { get; }
-		public Uri Url => new Uri($"https://beta.faithlife.com/{CalendarItem.Destination.Id}/calendar/view/{CalendarItem.Id}");
+		public Uri Url => new($"https://beta.faithlife.com/{CalendarItem.Destination.Id}/calendar/view/{CalendarItem.Id}");
 		public string Title => $"{CalendarItem.Source.Name} posted an event to {CalendarItem.Destination.Name}";
 		public string Details => Truncate(CalendarItem.Title, 200) + (string.IsNullOrEmpty(CalendarItem.Start) ? "" : (" at " + CalendarItem.Start));
-		private CalendarItemDto CalendarItem { get; }
+		private CalendarItemDto CalendarItem => Item.CalendarItem!;
 	}
 
-	internal readonly struct CommentFeedItemHandler : IFeedItemHandler
+	internal readonly record struct CommentFeedItemHandler(ItemDto Item) : IFeedItemHandler
 	{
-		public CommentFeedItemHandler(ItemDto item)
-		{
-			Item = item;
-			Comment = item.Comment!;
-		}
-
-		public ItemDto Item { get; }
-		public Uri Url => new Uri($"https://beta.faithlife.com/posts/{Comment.Id}");
+		public Uri Url => new($"https://beta.faithlife.com/posts/{Comment.Id}");
 		public string Title
 		{
 			get
@@ -80,83 +66,46 @@ namespace FaithlifeReader.Functions
 			}
 		}
 
-		private CommentDto Comment { get; }
+		private CommentDto Comment => Item.Comment!;
 	}
 
-	internal readonly struct DiscussionTopicFeedItemHandler : IFeedItemHandler
+	internal readonly record struct DiscussionTopicFeedItemHandler(ItemDto Item) : IFeedItemHandler
 	{
-		public DiscussionTopicFeedItemHandler(ItemDto item)
-		{
-			Item = item;
-			DiscussionTopic = item.DiscussionTopic!;
-		}
-
-		public ItemDto Item { get; }
-		public Uri Url => new Uri($"https://beta.faithlife.com/{DiscussionTopic.OriginalPost.Destination.Id}/topics/{DiscussionTopic.Id}/latest");
+		public Uri Url => new($"https://beta.faithlife.com/{DiscussionTopic.OriginalPost.Destination.Id}/topics/{DiscussionTopic.Id}/latest");
 		public string Title => $"{DiscussionTopic.OriginalPost.Source.Name} started a discussion in {DiscussionTopic.OriginalPost.Destination.Name}";
 		public string Details => Truncate(DiscussionTopic.Topic, 200);
-
-		private DiscussionTopicDto DiscussionTopic { get; }
+		private DiscussionTopicDto DiscussionTopic => Item.DiscussionTopic!;
 	}
 
-	internal readonly struct GroupBulletinFeedItemHandler : IFeedItemHandler
+	internal readonly record struct GroupBulletinFeedItemHandler(ItemDto Item) : IFeedItemHandler
 	{
-		public GroupBulletinFeedItemHandler(ItemDto item)
-		{
-			Item = item;
-			Newsletter = item.Newsletter!;
-		}
-
-		public ItemDto Item { get; }
-		public Uri Url => new Uri($"https://beta.faithlife.com/{Newsletter.Destination.Id}/bulletins/{Newsletter.Id}");
+		public Uri Url => new($"https://beta.faithlife.com/{Newsletter.Destination.Id}/bulletins/{Newsletter.Id}");
 		public string Title => $"{Newsletter.Source.Name} published a bulletin in {Newsletter.Destination.Name}";
 		public string Details => Truncate(Newsletter.Title, 120) + (string.IsNullOrEmpty(Newsletter.Subtitle) ? "" : (" / " + Truncate(Newsletter.Subtitle, 60)));
-
-		private NewsletterDto Newsletter { get; }
+		private NewsletterDto Newsletter => Item.Newsletter!;
 	}
 
-	internal readonly struct NewsletterFeedItemHandler : IFeedItemHandler
+	internal readonly record struct NewsletterFeedItemHandler(ItemDto Item) : IFeedItemHandler
 	{
-		public NewsletterFeedItemHandler(ItemDto item)
-		{
-			Item = item;
-			Newsletter = item.Newsletter!;
-		}
-
-		public ItemDto Item { get; }
-		public Uri Url => new Uri($"https://beta.faithlife.com/{Newsletter.Destination.Id}/newsletters/{Newsletter.Id}");
+		public Uri Url => new($"https://beta.faithlife.com/{Newsletter.Destination.Id}/newsletters/{Newsletter.Id}");
 		public string Title => $"{Newsletter.Source.Name} posted a newsletter to {Newsletter.Destination.Name}";
 		public string Details => Truncate(Newsletter.Title, 120) + (string.IsNullOrEmpty(Newsletter.Subtitle) ? "" : (" / " + Truncate(Newsletter.Subtitle, 60)));
-		private NewsletterDto Newsletter { get; }
+		private NewsletterDto Newsletter => Item.Newsletter!;
 	}
 
-	internal readonly struct NoteFeedItemHandler : IFeedItemHandler
+	internal readonly record struct NoteFeedItemHandler(ItemDto Item) : IFeedItemHandler
 	{
-		public NoteFeedItemHandler(ItemDto item)
-		{
-			Item = item;
-			Note = item.Note!;
-		}
-
-		public ItemDto Item { get; }
-		public Uri Url => new Uri($"https://beta.faithlife.com/notes/{Note.Id}");
+		public Uri Url => new($"https://beta.faithlife.com/notes/{Note.Id}");
 		public string Title => $"{Note.Source.Name} took a note";
 		public string Details => Truncate(Note.Text, 200);
-		private NoteDto Note { get; }
+		private NoteDto Note => Item.Note!;
 	}
 
-	internal readonly struct ReviewFeedItemHandler : IFeedItemHandler
+	internal readonly record struct ReviewFeedItemHandler(ItemDto Item) : IFeedItemHandler
 	{
-		public ReviewFeedItemHandler(ItemDto item)
-		{
-			Item = item;
-			Review = item.Review!;
-		}
-
-		public ItemDto Item { get; }
-		public Uri Url => new Uri($"https://beta.faithlife.com/reviews/{Review.Id}");
+		public Uri Url => new($"https://beta.faithlife.com/reviews/{Review.Id}");
 		public string Title => $"{Review.Source.Name} wrote a review";
 		public string Details => $"{Review.Rating} stars on {Review.PageUrl}";
-		private ReviewDto Review { get; }
+		private ReviewDto Review => Item.Review!;
 	}
 }
