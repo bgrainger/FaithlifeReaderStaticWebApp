@@ -1,12 +1,9 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿namespace FaithlifeReader.Functions.Dtos;
 
-namespace FaithlifeReader.Functions.Dtos
+public class DiscussionTopicPostDto
 {
-	public class DiscussionTopicPostDto
-	{
-		public int Index { get; set; }
-		[AllowNull]
-		public string Kind { get; set; }
-		public string? Text { get; set; }
-	}
+	public int Index { get; set; }
+	[AllowNull]
+	public string Kind { get; set; }
+	public string? Text { get; set; }
 }

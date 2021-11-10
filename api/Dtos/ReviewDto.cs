@@ -1,11 +1,8 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿namespace FaithlifeReader.Functions.Dtos;
 
-namespace FaithlifeReader.Functions.Dtos
+public class ReviewDto : ItemDetailsDto
 {
-	public class ReviewDto : ItemDetailsDto
-	{
-		public int Rating { get; set; }
-		[AllowNull]
-		public string PageUrl { get; set; }
-	}
+	public int Rating { get; set; }
+	[AllowNull]
+	public string PageUrl { get; set; }
 }
